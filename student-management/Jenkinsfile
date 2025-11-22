@@ -1,0 +1,33 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('git') {
+            steps {
+                git url: 'https://github.com/AMENIFAKHRI/ameni_fakhri.git',
+                    branch: 'main'
+            }
+        }
+
+        stage('mvn test') {
+            steps {
+                dir('student-management') {
+                    sh 'mvn test'
+                }
+            }
+        }
+
+        stage('mvn package') {
+            steps {
+                dir('student-management') {
+                    sh 'mvn package -DskipTests'
+                }
+            }
+        }
+    }
+
+    post {
+        success { echo 'TOUT VERT EN 3 STAGES !' }
+        failure { echo 'Il y a un petit souci' }
+    }
+}
