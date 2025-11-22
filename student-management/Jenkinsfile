@@ -4,8 +4,8 @@ pipeline {
     stages {
         stage('git') {
             steps {
-                git url: 'https://github.com/AMENIFAKHRI/ameni_fakhri.git',
-                    branch: 'main'
+                echo 'Récupération du code...'
+                checkout scm
             }
         }
 
@@ -27,7 +27,7 @@ pipeline {
     }
 
     post {
-        success { echo 'TOUT VERT EN 3 STAGES !' }
-        failure { echo 'Il y a un petit souci' }
+        success { echo 'TOUT EST VERT ! 3 STAGES RÉUSSIS !' }
+        failure { echo 'Petit souci de chemin, mais maintenant c\'est bon' }
     }
 }
