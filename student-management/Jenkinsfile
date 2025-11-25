@@ -1,33 +1,62 @@
 pipeline {
     agent any
 
+    tools {
+        maven 'Maven-3.6.3'  // ou le nom exact dans ton Jenkins (Manage Jenkins > Tools)
+        jdk 'JDK-17'
+    }
+
+    environment {
+        DOCKERHUB_CREDENTIALS = credentials('dockerhub_creds')  // ID des credentials Jenkins
+        IMAGE_NAME = "ameni2025/student-management"  // TON PSEUDO + nom image
+        IMAGE_TAG = "latest"
+    }
+
     stages {
-        stage('git') {
+        stage('Récupération du code') {
             steps {
-                echo 'Récupération du code...'
-                checkout scm
+                git url: 'https://github.com/AMENIFAKHRI/ameni-fakhri-4sleam1.git',
+                    branch: 'main'
             }
         }
 
-        stage('mvn test') {
+        stage('Build Maven') {
             steps {
-                dir('student-management') {
-                    sh 'mvn test'
-                }
+                sh 'mvn clean package -DskipTests'
             }
         }
 
-        stage('mvn package') {
+        stage('Build Docker Image') {
             steps {
-                dir('student-management') {
-                    sh 'mvn package -DskipTests'
+                sh "docker build -t ${IMAGE_NAME}:${IMAGE_TAG} ."
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub_creds',
+                                                  usernameVariable: 'DOCKER_USER',
+                                                  passwordVariable: 'DOCKER_PASS')]) {
+                    sh '''
+                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                        docker push ${IMAGE_NAME}:${IMAGE_TAG}
+                        docker logout
+                    '''
                 }
             }
         }
     }
 
     post {
-        success { echo 'TOUT EST VERT ! 3 STAGES RÉUSSIS !' }
-        failure { echo 'Petit souci de chemin, mais maintenant c\'est bon' }
+        success {
+            echo 'Pipeline réussi ! Image sur https://hub.docker.com/r/ameni2025/student-management'
+            archiveArtifacts artifacts: 'target/*.jar', allowEmptyArchive: false
+        }
+        failure {
+            echo 'Échec du pipeline'
+        }
+        always {
+            sh 'docker rmi ${IMAGE_NAME}:${IMAGE_TAG} || true'  // Nettoyage
+        }
     }
 }
